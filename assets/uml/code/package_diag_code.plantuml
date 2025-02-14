@@ -1,0 +1,29 @@
+@startuml
+package "com.fiberlogpro.controller" {
+  class WorkLogController
+  class KPIController
+}
+
+package "com.fiberlogpro.service" {
+  class WorkLogService
+}
+
+package "com.fiberlogpro.model" {
+  class WorkLogEntry
+  class FileUploadMetadata
+}
+
+package "com.fiberlogpro.repository" {
+  class WorkLogRepository
+  class FileUploadMetadataRepository
+}
+
+' Define dependencies
+WorkLogController --> WorkLogService
+KPIController --> WorkLogService
+WorkLogService --> "com.fiberlogpro.model::WorkLogEntry"
+WorkLogService --> "com.fiberlogpro.model::FileUploadMetadata"
+WorkLogService --> WorkLogRepository
+WorkLogService --> FileUploadMetadataRepository
+
+@enduml

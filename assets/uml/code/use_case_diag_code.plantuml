@@ -1,0 +1,13 @@
+@startuml
+actor "Operator" as User
+
+rectangle "FiberLog Pro" {
+  (Upload Work Log File)
+  (View Dashboard)
+  (Generate PDF Report)
+}
+
+User --> (Upload Work Log File)
+User --> (View Dashboard)
+User --> (Generate PDF Report)
+@enduml

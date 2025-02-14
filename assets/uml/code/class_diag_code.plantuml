@@ -1,0 +1,29 @@
+@startuml
+' Domain Entities
+class WorkLogEntry {
+  - id: Long
+  - date: LocalDate
+  - employeeName: String
+  - projectName: String
+  - taskDescription: String
+  - hoursLogged: Double
+  - createdAt: Timestamp
+  - updatedAt: Timestamp
+  --
+  + calculateKPIs(): KPIResponse
+}
+
+class FileUploadMetadata {
+  - id: Long
+  - fileName: String
+  - uploadDate: Timestamp
+  - status: String
+  - numberOfRecords: Integer
+  --
+  + processFile(file: MultipartFile): List<WorkLogEntry>
+}
+
+' Association: A FileUploadMetadata instance is associated with multiple WorkLogEntry instances
+FileUploadMetadata "1" o-- "*" WorkLogEntry
+
+@enduml

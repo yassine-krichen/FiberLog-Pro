@@ -1,0 +1,14 @@
+@startuml
+actor User
+participant "Frontend\n(Angular)" as Frontend
+participant "FileUploadController\n(Spring Boot)" as Controller
+participant "WorkLogService" as Service
+database "PostgreSQL DB" as DB
+
+User -> Frontend: Select file and click Upload
+Frontend -> Controller: POST /api/upload (file)
+Controller -> Service: processFile(file)
+Service -> DB: Persist WorkLogEntry(s)
+Service --> Controller: Return summary
+Controller --> Frontend: Response (success/failure)
+@enduml
