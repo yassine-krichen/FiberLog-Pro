@@ -149,6 +149,7 @@ public class FileUploadServiceImpl implements FileUploadService {
     private List<WorkLogRowDto> parseCsv(MultipartFile file) throws Exception {
         List<WorkLogRowDto> rowDtos = new ArrayList<>();
         try (Reader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
+            @SuppressWarnings("deprecation")
             CSVFormat csvFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader();
             CSVParser csvParser = new CSVParser(reader, csvFormat);
             for (CSVRecord record : csvParser) {
