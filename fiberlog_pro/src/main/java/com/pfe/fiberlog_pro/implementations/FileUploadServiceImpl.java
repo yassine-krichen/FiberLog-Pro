@@ -151,15 +151,17 @@ public class FileUploadServiceImpl implements FileUploadService {
         try (Reader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
             @SuppressWarnings("deprecation")
             CSVFormat csvFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader();
-            CSVParser csvParser = new CSVParser(reader, csvFormat);
-            for (CSVRecord record : csvParser) {
-                WorkLogRowDto dto = new WorkLogRowDto();
-                dto.setDate(record.get("Date"));
-                dto.setEmployeeName(record.get("EmployeeName"));
-                dto.setProjectName(record.get("ProjectName"));
-                dto.setTaskDescription(record.get("TaskDescription"));
-                dto.setHoursLogged(Double.valueOf(record.get("HoursLogged")));
-                rowDtos.add(dto);
+            // ? check if it breaks or not with newer versions
+            try (CSVParser csvParser = new CSVParser(reader, csvFormat)) {
+                for (CSVRecord record : csvParser) {
+                    WorkLogRowDto dto = new WorkLogRowDto();
+                    dto.setDate(record.get("Date"));
+                    dto.setEmployeeName(record.get("EmployeeName"));
+                    dto.setProjectName(record.get("ProjectName"));
+                    dto.setTaskDescription(record.get("TaskDescription"));
+                    dto.setHoursLogged(Double.valueOf(record.get("HoursLogged")));
+                    rowDtos.add(dto);
+                }
             }
         }
         return rowDtos;
