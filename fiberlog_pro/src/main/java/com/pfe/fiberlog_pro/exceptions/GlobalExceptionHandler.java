@@ -22,4 +22,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(errorDetails, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    // ! Handle custom excpetions (not found so they don't throw 500)
+
 }
