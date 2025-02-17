@@ -4,8 +4,8 @@
 
 _Intelligent Work Log Analyzer & KPI Dashboard for Fiber Deployment Efficiency_
 
-![Java](https://img.shields.io/badge/Java-1.8-blue)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-2.5.x-brightgreen)
+![Java](https://img.shields.io/badge/Java-23-blue)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.2-brightgreen)
 ![Angular](https://img.shields.io/badge/Angular-11-red)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
