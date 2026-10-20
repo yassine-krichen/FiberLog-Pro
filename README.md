@@ -1,307 +1,97 @@
 # FiberLog Pro
 
-![Logo Banner](assets/logo/logo_banner.png)
-
-_Intelligent Work Log Analyzer & KPI Dashboard for Fiber Deployment Efficiency_
+*Spring Boot backend that ingests daily work-log files (CSV or Excel), validates them, and serves KPIs and a PDF report for fiber-deployment teams.*
 
 ![Java](https://img.shields.io/badge/Java-23-blue)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.2-brightgreen)
-![Angular](https://img.shields.io/badge/Angular-11-red)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-persistence-informational)
+![License](https://img.shields.io/badge/license-PolyForm%20Strict%201.0.0-lightgrey)
 
----
+![Logo Banner](assets/logo/logo_banner.png)
 
-## Table of Contents
+## Why
 
--   [Overview](#overview)
--   [Features](#features)
--   [Architecture & Tech Stack](#architecture--tech-stack)
--   [Data Model & Entities](#data-model--entities)
--   [REST API Endpoints](#rest-api-endpoints)
--   [Frontend Structure & Designs](#frontend-structure--designs)
--   [Visual UML Diagrams](#visual-uml-diagrams)
--   [Workflow Example](#workflow-example)
--   [Installation & Deployment](#installation--deployment)
--   [Upcoming Features](#upcoming-features)
--   [Contributing](#contributing)
--   [License](#license)
-
----
-
-## Overview
-
-**FiberLog Pro** is a cutting-edge web application designed to streamline the deployment and maintenance of fiber optic networks. By automating data ingestion, KPI calculations, and report generation, FiberLog Pro eliminates manual errors, reduces delays, and enhances operational efficiency—all in a sleek, user-friendly interface.
-
-Built with **Angular 11** and **Spring Boot 2.5.x** on Java 1.8, this application leverages modern technologies and libraries to deliver a robust, scalable solution that integrates seamlessly with your existing infrastructure.
-
----
+Field teams record daily work in spreadsheets. Turning those files into numbers (hours per project, hours per employee, how many rows are unusable) is manual and error-prone. FiberLog Pro takes the spreadsheet as is, rejects bad rows with row-level messages, stores the valid ones, and computes the indicators on demand. It was built as an end-of-studies (PFE) internship project.
 
 ## Features
 
--   **Automated Data Ingestion:**  
-    Upload daily work logs via Excel or CSV files using an intuitive drag-and-drop interface powered by NG-ZORRO’s Upload component.
--   **Data Validation & Processing:**  
-    Parse and validate records using **Apache POI** for Excel and **Apache Commons CSV** for CSV, ensuring high data quality.
--   **Real-time KPI Dashboard:**  
-    Visualize key metrics such as total hours logged, average hours per employee, project breakdowns, and more with interactive charts and tables.
--   **Dynamic REST API:**  
-    Access detailed work log entries and KPI summaries through well-documented REST endpoints.
--   **PDF Reporting (Optional):**  
-    Generate downloadable PDF reports summarizing project performance using **Apache PDFBox**.
--   **Secure & Maintainable Codebase:**  
-    Utilize **Lombok** for reduced boilerplate, **Hibernate Envers** for audit trails, and **Springdoc OpenAPI** for seamless API documentation.
--   **Containerized Deployment:**  
-    Leverage Docker and GitLab CI/CD for streamlined build, test, and deployment pipelines.
+- Upload a `.csv` or `.xlsx` work log through `POST /api/upload`. Files with another extension are rejected.
+- Row validation (missing date, missing employee name, negative or missing hours) with a message per failing row.
+- CRUD and paginated listing of work-log entries.
+- KPI endpoint: total hours, average hours per employee, hours by project, most active employee, and counts of total, valid and invalid logs.
+- PDF report of the KPIs and work-log lines, generated with Apache PDFBox.
+- A global exception handler that maps errors to a consistent `ErrorDetails` response.
+- Upload metadata (file name, status, record count) stored per upload.
 
----
+## Architecture
 
-## Architecture & Tech Stack
+Controller, service, repository, with DTOs between the web layer and the entities.
 
-### Backend (Spring Boot 2.5.x, Java 1.8)
+```text
+fiberlog_pro/src/main/java/com/pfe/fiberlog_pro/
+  controllers/      FileUploadController, WorkLogController, KPIController, ReportController
+  services/         service interfaces
+  implementations/  FileUploadServiceImpl (parsing + validation), WorkLogServiceImpl, KPIServiceImpl, ReportServiceImpl
+  entities/         WorkLogEntry, FileUploadMetadata
+  repositories/     Spring Data JPA repositories
+  payloads/         DTOs (WorkLogDto, WorkLogRowDto, KPIResponseDto, ...)
+  exceptions/       GlobalExceptionHandler
+  config/           ModelMapper and logging configuration
+```
 
--   **Spring Boot 2.5.x** for building RESTful APIs.
--   **Spring Data JPA** with PostgreSQL for persistence.
--   **Hibernate Envers** for entity versioning and audit tracking.
--   **Apache POI 5.2.3** & **Apache Commons CSV 1.8** for file parsing.
--   **Lombok 1.18.22** for reducing boilerplate.
--   **Springdoc OpenAPI 1.5.10** for API documentation.
--   **JUnit 5.7.2** for testing.
+Stack: Java 23, Spring Boot 3.4.2, Spring Data JPA, PostgreSQL, Apache POI 5.2.3 (Excel), Apache Commons CSV 1.9.0, Apache PDFBox 2.0.27, ModelMapper, Lombok, Actuator.
 
-### Frontend (Angular 11)
+Design material (UML sources and images, UI mockups, Scrum artifacts) is in `assets/`:
 
--   **Angular 11** for the application framework.
--   **NG-ZORRO 11.4.2** for a modern Ant Design UI.
--   **ng2-charts 3.0.0** (or similar) for interactive data visualization.
--   **Jasmine & Karma** for unit and integration testing.
+![Class Diagram](assets/uml/diagrams/class_diagram.png)
+![Sequence Diagram](assets/uml/diagrams/seq_diagram_upload.png)
 
-### DevOps & Deployment
+The dashboard UI exists only as mockups in `assets/designs/`; this repository contains the backend.
 
--   **Docker** for containerization.
--   **GitLab CI/CD** for continuous integration and deployment.
+## API
 
----
+| Method | Path | Purpose |
+| :--- | :--- | :--- |
+| POST | `/api/upload` | Upload a CSV or Excel work log |
+| GET | `/api/worklogs` | Paginated list of entries |
+| GET / PUT / DELETE | `/api/worklogs/{id}` | Read, update, delete one entry |
+| POST | `/api/worklogs` | Create one entry |
+| GET | `/api/kpis` | KPI summary |
+| GET | `/api/report/pdf` | PDF report |
 
-## Data Model & Entities
+### Input format
 
-### 1. WorkLogEntry
+CSV (with a header row) or the first sheet of an Excel file, with these columns:
 
-Represents a single record from an uploaded work log file.
+| Date | EmployeeName | ProjectName | TaskDescription | HoursLogged |
+| :--- | :--- | :--- | :--- | :--- |
+| 2025-02-10 | Employee A | Fiber Deployment | Installed fiber cables in District A | 8 |
 
-| Field             | Type      | Description                                  |
-| ----------------- | --------- | -------------------------------------------- |
-| `id`              | Long      | Auto-generated primary key                   |
-| `date`            | LocalDate | Date when the work was performed             |
-| `employeeName`    | String    | Name of the employee                         |
-| `projectName`     | String    | Name of the project (e.g., Fiber Deployment) |
-| `taskDescription` | String    | Description of the work/task                 |
-| `hoursLogged`     | Double    | Number of hours worked                       |
-| `createdAt`       | Timestamp | Record creation timestamp                    |
-| `updatedAt`       | Timestamp | Last update timestamp                        |
+## Run
 
-### 2. FileUploadMetadata (Optional)
+Requirements: JDK 23 and a PostgreSQL database.
 
-Tracks details of each file upload.
+```bash
+cd fiberlog_pro
+# the datasource settings are in src/main/resources/application.properties
+export DB_PASSWORD=<your local postgres password>
+./mvnw spring-boot:run
+```
 
-| Field             | Type      | Description                         |
-| ----------------- | --------- | ----------------------------------- |
-| `id`              | Long      | Auto-generated primary key          |
-| `fileName`        | String    | Name of the uploaded file           |
-| `uploadDate`      | Timestamp | Date and time of the upload         |
-| `status`          | String    | Status (e.g., SUCCESS, FAILED)      |
-| `numberOfRecords` | Integer   | Count of processed work log entries |
+The default datasource is `jdbc:postgresql://localhost:5432/fiberlog_pro` with user `postgres`; the password is read from `DB_PASSWORD`. The server listens on port 8080 and Hibernate creates or updates the schema (`ddl-auto=update`).
 
----
+## Status and limits
 
-## REST API Endpoints
-
-### File Upload & Data Processing
-
--   **POST `/api/upload`**  
-    Accepts a multipart file (CSV/Excel) and processes its contents:
-    -   Detects file type and uses **Apache POI** or **Apache Commons CSV** for parsing.
-    -   Validates data (e.g., date formats, non-negative hours).
-    -   Persists validated records as **WorkLogEntry** entities.
-    -   Optionally logs upload metadata via **FileUploadMetadata**.
-
-### Work Log Retrieval
-
--   **GET `/api/worklogs`**  
-    Retrieves a list (or paginated results) of all work log entries for review.
-
-### KPI Calculation
-
--   **GET `/api/kpis`**  
-    Computes and returns key performance indicators such as:
-    -   Total hours logged
-    -   Average hours per employee
-    -   Number of tasks completed
-    -   Hours breakdown by project
-
-### PDF Report Generation (Optional)
-
--   **GET `/api/report/pdf`**  
-    Generates a PDF report summarizing KPIs and a sample of work log entries using **Apache PDFBox**.
-
-### API Documentation
-
--   **GET `/v3/api-docs`** or **`/swagger-ui.html`**  
-    Auto-generated API documentation via **Springdoc OpenAPI**.
-
----
-
-## Frontend Structure & Designs
-
-### Dashboard Page
-
--   **KPI Cards:** Displays key metrics like total hours, average hours, etc.
--   **Interactive Charts:** Graphs showing trends (e.g., hours per project over time).
--   **Work Log Table:** Detailed table (using NG-ZORRO) for recent entries with filtering and sorting capabilities.
-
-#### Design Mockups
-
--   **Dashboard Table Design:**  
-    ![Dashboard Table](assets/designs/dahboard_table.png)
--   **Dashboard Stats Design:**  
-    ![Dashboard Stats](assets/designs/dashboard_stats.png)
--   **Upload Page Design:**  
-    ![Upload Page](assets/designs/upload.png)
-
-### File Upload Page
-
--   **Upload Form:**
-    -   Drag-and-drop file upload powered by NG-ZORRO’s Upload component.
-    -   Trigger button to submit the file.
--   **Status Notifications:**
-    -   Alerts or messages indicating the success or failure of uploads.
-
-### Work Log Detail Modal (Optional)
-
--   **Modal Dialog:**
-    -   Opens upon selecting a table row, displaying detailed information about the chosen work log entry.
-
----
-
-## Visual UML Diagrams
-
-To provide clarity on the system architecture and processes, the following UML diagrams are available:
-
--   **Class Diagram:**  
-    ![Class Diagram](assets/uml/diagrams/class_diagram.png)
--   **Package Diagram:**  
-    ![Package Diagram](assets/uml/diagrams/package_diagram.png)
--   **Sequence Diagram (File Upload Process):**  
-    ![Sequence Diagram](assets/uml/diagrams/seq_diagram_upload.png)
--   **Use Case Diagram:**  
-    ![Use Case Diagram](assets/uml/diagrams/use_case.png)
-
-_The corresponding PlantUML source files for these diagrams are located in the [assets/uml/code](assets/uml/code) folder._
-
----
-
-## Workflow Example
-
-1. **Prepare the Data:**  
-   Create an Excel or CSV file with daily work logs. For example:
-
-    | Date       | Employee Name | Project Name      | Task Description                     | Hours Logged |
-    | ---------- | ------------- | ----------------- | ------------------------------------ | ------------ |
-    | 2025-02-10 | John Doe      | Fiber Deployment  | Installed fiber cables in District A | 8            |
-    | 2025-02-10 | Jane Smith    | Fiber Maintenance | Routine maintenance in District B    | 6            |
-
-2. **Upload the File:**
-
-    - Navigate to the File Upload page.
-    - Use the drag-and-drop interface to select and upload your file.
-    - The file is processed via **POST `/api/upload`**, validating and persisting each record.
-
-3. **Dashboard Refresh:**
-
-    - The dashboard auto-refreshes (or via a manual refresh button).
-    - **GET `/api/kpis`** is invoked to fetch the latest KPI metrics.
-    - The dashboard displays interactive charts and tables with up-to-date work log data.
-
-4. **Generate Report (Optional):**
-    - Click the “Generate PDF Report” button.
-    - **GET `/api/report/pdf`** is triggered, returning a downloadable PDF summary.
-
----
-
-## Installation & Deployment
-
-### Prerequisites
-
--   **Java 1.8**
--   **Node.js & npm**
--   **Angular CLI**
--   **PostgreSQL**
--   **Docker (optional for containerization)**
--   **GitLab CI/CD** (for automated deployment)
-
-### Backend Setup
-
-1. Clone the repository.
-2. Navigate to the backend directory.
-3. Build the Spring Boot application:
-    ```bash
-    ./mvnw clean install
-    ```
-4. Run the application:
-    ```bash
-    ./mvnw spring-boot:run
-    ```
-
-### Frontend Setup
-
-1. Navigate to the frontend directory.
-2. Install dependencies:
-    ```bash
-    npm install
-    ```
-3. Run the Angular application:
-    ```bash
-    ng serve --open
-    ```
-
-### Docker Deployment
-
--   Use the provided `Dockerfile` and `docker-compose.yml` to containerize the app.
--   Configure GitLab CI/CD for automated builds and deployments.
-
----
-
-## Upcoming Features
-
--   **Enhanced Data Analytics:**  
-    Integrate advanced statistical models and machine learning for predictive insights.
--   **User Authentication & Role-Based Access:**  
-    Secure sensitive data with fine-grained access control.
--   **Mobile-Responsive Design:**  
-    Optimize the UI for mobile devices to enable field-based log submissions.
--   **Advanced Workflow Automation:**  
-    Incorporate BPM engines (like Camunda BPM) for complex, multi-step process automation.
--   **Real-Time Notifications:**  
-    Push alerts for data anomalies or upload issues.
-
----
-
-## Contributing
-
-We welcome contributions from the community! Please follow these steps:
-
-1. Fork the repository.
-2. Create a feature branch: `git checkout -b feature/my-new-feature`
-3. Commit your changes: `git commit -am 'Add new feature'`
-4. Push to the branch: `git push origin feature/my-new-feature`
-5. Open a pull request.
-
----
+No Excel/CSV fixtures or meaningful tests yet (only the Spring context test). The dashboard front end and authentication are not implemented.
 
 ## License
 
-This project is licensed under the MIT License.
+**Source-available, not open source.** Published under the
+[PolyForm Strict License 1.0.0](LICENSE) so you can read the code, run it, and learn
+from it for personal, research, or evaluation use.
 
----
+You may **not** use it commercially, redistribute it, rebrand it, or publish modified
+versions without written permission. Copyright (c) 2026 Yassine Krichen. All rights
+not granted by the license are reserved.
 
-_Experience the future of fiber deployment efficiency with FiberLog Pro — where automation meets precision. Join us in revolutionizing the way work logs and KPIs are managed!_
-
-Made with ❤️‍🔥 By noel & kaos_king
+For commercial licensing or collaboration: krichenyassine22@gmail.com
