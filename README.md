@@ -11,7 +11,7 @@
 
 ## Why
 
-Field teams record daily work in spreadsheets. Turning those files into numbers (hours per project, hours per employee, how many rows are unusable) is manual and error-prone. FiberLog Pro takes the spreadsheet as is, rejects bad rows with row-level messages, stores the valid ones, and computes the indicators on demand. It was built as an end-of-studies (PFE) internship project.
+Field teams record daily work in spreadsheets. Turning those files into numbers (hours per project, hours per employee, how many rows are unusable) is manual and error-prone. FiberLog Pro takes the spreadsheet as is, rejects bad rows with row-level messages, stores the valid ones, and computes the indicators on demand. I built it during my end-of-studies (PFE) internship at Sofrecom Tunisie, starting February 2025.
 
 ## Features
 
